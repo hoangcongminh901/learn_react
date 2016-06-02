@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  resources :technologies
+
   root "meetups#new"
   resources :meetups, only: [:new, :create]
 

@@ -5,6 +5,24 @@
 #Sử dụng React virtual DOM
 DOM = React.DOM
 
+Separator = React.createClass
+  displayName: "Separator"
+  render: () ->
+    children = []
+    for child, i in @props.children
+      children.push( child )
+      if i < @props.children.length - 1
+        children.push(
+          DOM.div
+            key: "separator-#{i}"
+            className: "col-lg-offset-2 col-lg-10"
+            DOM.hr
+              className:"form-input-separator"
+        )
+    DOM.div(null, children)
+
+separator = React.createFactory(Separator)
+
 # Tạo 1 class(component) mới - đây là phần chính chỗ nhập title/description..
 FormInputWithLabel = React.createClass
   ###
@@ -196,6 +214,7 @@ window.CreateNewMeetupForm = React.createClass
         title: "",
         description: "",
         date: new Date(),
+        technology: @props.technologies[0].name
         seoText: null,
         guests: [""],
       }
@@ -238,6 +257,10 @@ window.CreateNewMeetupForm = React.createClass
 
     @forceUpdate()
 
+  technologyChanged: (e) ->
+    @state.meetup.technology = e.target.value
+    @forceUpdate()
+
   computeDefaultSeoText: () ->
     words = @state.meetup.title.toLowerCase().split(/\s+/)
     words.push(monthName(@state.meetup.date.getMonth()))
@@ -259,12 +282,18 @@ window.CreateNewMeetupForm = React.createClass
       dataType: "JSON"
       contentType: "application/json"
       processData: false
-      data: JSON.stringify({meetup: {
-        title: meetup.title
-        description: meetup.description
-        date: "#{meetup.date.getFullYear()}-#{meetup.date.getMonth()+1}-#{meetup.date.getDate()}"
-        seo: @state.meetup.seoText || @computeDefaultSeoText()
-        }})
+      data: JSON.stringify(
+        {
+          meetup: {
+            title: meetup.title
+            description: meetup.description
+            date: "#{meetup.date.getFullYear()}-#{meetup.date.getMonth()+1}-#{meetup.date.getDate()}"
+            seo: @state.meetup.seoText || @computeDefaultSeoText()
+            guests: @state.meetup.guests
+            technology: @state.meetup.technology
+          }
+        }
+      )
 
   render: ->
     DOM.form
@@ -294,6 +323,25 @@ window.CreateNewMeetupForm = React.createClass
           onChange: @dateChanged
           date: @state.meetup.date
 
+        DOM.div
+          className: "form-group"
+          DOM.label
+            htmlFor: "technology"
+            className: "col-lg-2 control-label"
+            "Technology"
+          DOM.div
+            className: 'col-lg-10'
+            DOM.select
+              className: "form-control"
+              onChange: @technologyChanged
+              value: @state.meetup.technology
+              for tech in @props.technologies
+                DOM.option(
+                  value: tech.name,
+                  key: tech.id,
+                  tech.name
+                )
+
         formInputWithLabelAndReset
           id: "seo"
           value: if @state.meetup.seoText? then @state.meetup.seoText else @computeDefaultSeoText()
@@ -303,17 +351,18 @@ window.CreateNewMeetupForm = React.createClass
 
       DOM.fieldset null,
         DOM.legend null, "Guests"
-        for guest, n in @state.meetup.guests
-          ((i) =>
-            formInputWithLabel
-              id: "email"
-              key: "guest-#{i}"
-              value: guest
-              onChange: (e) =>
-                @guestEmailChanged(i, e)
-              placeholder: "Email address of an invitee"
-              labelText: "Email"
-          )(n)
+        separator null,
+          for guest, n in @state.meetup.guests
+            ((i) =>
+              formInputWithLabel
+                id: "email"
+                key: "guest-#{i}"
+                value: guest
+                onChange: (e) =>
+                  @guestEmailChanged(i, e)
+                placeholder: "Email address of an invitee"
+                labelText: "Email"
+            )(n)
 
         DOM.div
           className: "form-group"
